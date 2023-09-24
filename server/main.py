@@ -13,26 +13,60 @@ how?
 """
 import urllib.parse as up
 import psycopg2
+import psycopg2.extras
+import openai
 import requests
+import queries
+import json
 
-db = None;
+gpt_url = URL = "https://api.openai.com/v1/chat/completions"
+API_key = "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";
 
-def generate_memo(parameters): 
-    db = database_conn().cursor()AZD
-    #retrieve formdata from a url
-    select_based_on_parameters(parameters)
-    #generate sql database ew
+def generate_memo(parameters = ["customer","product","supply"]): 
+    db = database_conn().cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+    #retrieve form data from a url
+    selection_data = select_based_on_parameters(db = db, list_of_parameters=parameters)
+    gpt_request(selection_data)
     memo = 0;
-
 
     db.close();
     return memo;
 
-def write_memo_to_file():
-    pass
+def gpt_request(data):
+     payload = {
+    "model": "gpt-3.5-turbo",
+    "messages": [{"role": "user", "content": f"Write a memo summarizing the results of these supply chain database queries: {data}"}],
+    "temperature" : 1.0,
+    "top_p":1.0,
+    "n" : 1,
+    "stream": False,
+    "presence_penalty":0,
+    "frequency_penalty":0,
+    }
 
-def select_based_on_parameters(list_of_parameters = None):
-    pass
+     headers = {
+    "Content-Type": "application/json",
+    "Authorization": f"Bearer {API_key}"
+    }
+     response = requests.post(URL, headers=headers, json=payload, stream=False)
+     print(response.text)
+
+
+def select_based_on_parameters(db, list_of_parameters):
+    selection_data = [];
+    #if information on customers is wanted 
+    if "customer" in list_of_parameters:
+         db.execute(queries.customer_query);
+         selection_data.append(db.fetchall());
+    #if information on product is wanted
+    if "product" in list_of_parameters:
+         db.execute(queries.product_query);
+         selection_data.append(db.fetchall());
+    #if information on supply is wanted
+    if "supply" in list_of_parameters:
+         db.execute(queries.supply_query);
+         selection_data.append(db.fetchall());
+    return selection_data;
 
 def database_conn():
         #parsing URL into sections and setting up the relevant parameters for a connection
@@ -48,5 +82,5 @@ def database_conn():
         )
         return conn;  
 
-
+generate_memo()
 
