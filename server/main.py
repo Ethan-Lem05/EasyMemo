@@ -26,9 +26,13 @@ def generate_memo(parameters = ["customer","product","supply"]):
     db = database_conn().cursor(cursor_factory = psycopg2.extras.RealDictCursor)
     #retrieve form data from a url
     selection_data = select_based_on_parameters(db = db, list_of_parameters=parameters)
-    gpt_request(selection_data)
-    memo = 0;
+    memo = gpt_request(selection_data);
 
+    print(memo.role)
+    f = open("outputs\memo.txt", "w")
+    f.write(memo)
+
+    f.close() 
     db.close();
     return memo;
 
@@ -49,7 +53,8 @@ def gpt_request(data):
     "Authorization": f"Bearer {API_key}"
     }
      response = requests.post(URL, headers=headers, json=payload, stream=False)
-     print(response.text)
+     response = json.loads(response.text)
+     return response["choices"][0]["message"]
 
 
 def select_based_on_parameters(db, list_of_parameters):
